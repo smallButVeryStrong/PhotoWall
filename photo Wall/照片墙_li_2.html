@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>照片墙</title>
+	<style>
+		body{
+			background:url(img/2fc.jpg) no-repeat;
+			background-size: 1366px auto;
+		}
+		img{
+			vertical-align: top;
+			width: 180px;
+			height: 120px;
+			border-radius: 20px;
+
+		}
+		#list{
+			width: 840px;
+			height: 432px;
+			padding: 30px;
+			margin: 0 auto;
+			list-style: none;
+			border:3px dotted #f18b67;
+			border-radius: 20px;
+			--webkit-user-select: none;
+		}
+		div{
+			width: 150px;
+			margin: 10px auto;
+		}
+		li{
+			width: 180px;
+			border: 2px solid greenyellow;
+			margin: 10px;
+			display: inline-block;
+			border-radius: 20px;
+		}
+		button{
+			outline: none;
+			width: 100px;
+			line-height: 30px;
+			padding: 0;
+			border:1px solid pink;
+			background:pink;
+			color: blue;
+			font-size: 20px;
+			border-radius: 10px;
+		}
+	</style>
+</head>
+<body>
+	<div id="btn">
+		<button>随机</button>
+	</div>
+	<ul id="list">
+		<!-- <li>
+			<img src="img/2.jpg"/>
+		</li>
+		<li>
+			<img src="img/3.jpg"/>
+		</li>
+		<li>
+			<img src="img/7.jpg"/>
+		</li>
+		<li>
+			<img src="img/13.jpg"/>
+		</li>
+		<li>
+			<img src="img/14.jpg"/>
+		</li>
+		<li>
+			<img src="img/18.jpg"/>
+		</li>
+		<li>
+			<img src="img/21.jpg"/>
+		</li>
+		<li>
+			<img src="img/25.jpg"/>
+		</li> -->
+	</ul>
+</body>
+<script src="tools.js"></script>
+<script src="MTween.js"></script>
+<script>
+	//获取btn  和  照片容器 list
+	var btn = tools.$("#btn");
+	var list = tools.$("#list");
+	//定义数组 里边记录照片墙上要展示的图片src
+	var arrSrc = ['2','3','7','13','14','18','21','25','2a','97','238','bb'];
+	//生成结构 将照片先展示到页面中
+	var str = "";
+	for( var i = 0;i < arrSrc.length;i++ ){
+		str += '<li><img src="img/'+arrSrc[i]+'.jpg"/></li>';
+	}
+	list.innerHTML = str;//至此结构生成
+
+	//依照li现在的位置，转换为absolute,为其能够移动位置做准备
+	var allLi = tools.$("li",list);
+	//定义数组，记录li的位置
+	var arrPosition = [];
+	//用arrPosition记录li定位之前的位置
+	for( var i = 0;i < allLi.length;i++ ){
+		var obj = allLi[i].getBoundingClientRect();
+		arrPosition.push(obj);
+	}
+	createHTML();
+	function createHTML(){
+		//将所有的li变为绝对定位 然后给定位置
+		for( var i = 0;i < allLi.length;i++ ){
+			allLi[i].style.position = "absolute";
+			allLi[i].style.top = arrPosition[i].top + "px";
+			allLi[i].style.left = arrPosition[i].left + "px";
+		}
+	}
+	//点击随机按钮 让照片随机换位
+	var onOff = true;
+	btn.addEventListener("click",function(){
+		if( onOff ){	
+			arrPosition.sort(function(){
+				return Math.random() - 0.5
+			});
+			for( var i = 0;i < allLi.length;i++ ){
+				allLi[i].index = i;
+				var liLeft = arrPosition[i].left;
+				var liTop = arrPosition[i].top;
+				MTween.MTween(allLi[i],{left:liLeft,top:liTop},500)
+			}
+			onOff = !onOff;
+			//延时定时器，对应transition的时间
+			setTimeout(function(){
+				onOff = !onOff
+			},500);
+		}
+	},false);
+	
+	//给每个li添加mousedown、mousemove、mouseup事件处理，使鼠标能够拖动图片
+	for( var i = 0;i < allLi.length;i++ ){
+		allLi[i].index = i;
+		pictureMove(allLi[i]);
+	}
+	function pictureMove(obj){
+		obj.onmousedown = function(ev){
+			this.style.zIndex = "10";
+			//当鼠标摁下时，让图片跟着鼠标走
+			//首先记录鼠标距离li的顶部 和 左侧的距离
+			var disX = ev.clientX - this.offsetLeft;
+			var disY = ev.clientY - this.offsetTop;
+			document.onmousemove = function(ev){
+				//处理边界问题
+				var L = list.offsetLeft + parseInt(getComputedStyle(list)["border-left-width"]) - parseInt(getComputedStyle(allLi[0])["margin-left"]);
+				var R = list.offsetLeft - parseInt(getComputedStyle(list)["border-right-width"]) + list.offsetWidth - allLi[0].offsetWidth - parseInt(getComputedStyle(allLi[0])["margin-right"]);
+				var T = list.offsetTop + parseInt(getComputedStyle(list)["border-top-width"]) - parseInt(getComputedStyle(allLi[0])["margin-top"]);
+				var B = list.offsetTop - parseInt(getComputedStyle(list)["border-bottom-width"]) + list.offsetHeight -  allLi[0].offsetHeight - parseInt(getComputedStyle(allLi[0])["margin-bottom"]); 
+				var eleX = ev.clientX - disX;
+				var eleY = ev.clientY - disY;
+
+				if( eleX < L ){
+					eleX = L 
+				}
+				if( eleX > R ){
+					eleX = R 
+				}
+				if( eleY < T ){
+					eleY = T 
+				}
+				if( eleY > B ){
+					eleY = B 
+				}
+
+				obj.style.left = eleX + "px";
+				obj.style.top = eleY + "px";
+
+			};
+			document.onmouseup = function(){
+				document.onmousemove = null;
+				document.onmouseup = null;
+				obj.style.zIndex = 0;
+				var k = targetElement(obj);
+				if( k ){	
+					MTween.MTween(k,{left:arrPosition[obj.index].left,top:arrPosition[obj.index].top},500)
+					MTween.MTween(obj,{left:arrPosition[k.index].left,top:arrPosition[k.index].top},500)
+
+					var m =  obj.index;
+					obj.index = k.index;
+					k.index = m
+
+				}else{
+					MTween.MTween(obj,{left:arrPosition[obj.index].left,top:arrPosition[obj.index].top},500)
+				}
+				//交换下标
+
+			};
+			return false;
+		};
+	}
+ 
+	function targetElement(obj){
+		var value = +Infinity;	
+		var message = null;
+		for( var j = 0;j < allLi.length;j++ ){
+			if( obj != allLi[j] && duang(obj,allLi[j])){
+				if( duangDistance(obj,allLi[j]) < value){
+					value = duangDistance(obj,allLi[j]);
+					message = allLi[j];
+				}
+			}
+		}
+		if( message != null ){
+			return message;
+		}else{
+			return false;
+		}
+	}
+	function duangDistance(obj1,obj2){
+		var a = obj1.offsetLeft - obj2.offsetLeft;
+		var b = obj1.offsetTop - obj2.offsetTop;
+		return Math.abs(a*a + b*b);
+	}
+ 	function getRect(obj){
+		return obj.getBoundingClientRect();
+	}
+ 	function duang(obj1,obj2){
+		var obj1Info = getRect(obj1);	
+		var obj2Info = getRect(obj2);	
+		//obj1的上下左右
+		var obj1L = obj1Info.left;
+		var obj1R = obj1Info.right;
+		var obj1T = obj1Info.top;
+		var obj1B = obj1Info.bottom;
+		//obj2的上下左右
+		var obj2L = obj2Info.left;
+		var obj2R = obj2Info.right;
+		var obj2T = obj2Info.top;
+		var obj2B = obj2Info.bottom;
+		//排除掉没碰上的区域
+		if( obj1R < obj2L || obj1L > obj2R || obj1B < obj2T || obj1T > obj2B){
+			return false;
+		}else{
+			return true;
+		}
+	}
+</script>
+
+</html>
